@@ -1,4 +1,5 @@
 #include <iostream>
+#include <map>
 #include <vector>
 #include "StateList.hpp"
 
@@ -40,16 +41,16 @@ class stateEngine
 private:
     /* data */
 public:
-    State current_state;
+    State *current_state;
 
-    stateEngine(State someState = State()):
+    stateEngine(State *someState = new State):
         current_state{ someState }
     {
     };
 
     virtual void update()
     {
-        current_state.transitionCheck();
+        current_state->transitionCheck();
     }
 
     virtual void end()
@@ -206,6 +207,13 @@ class testBed : public stateEngine
 private:
     /* data */
 public:
+    // I think it's fair to put the enum-to-class map here
+    const std::map<StateList, State> StateData = {
+        std::make_pair(StateList::IDLE, idleState),
+        std::make_pair(StateList::TEST, testState),
+        std::make_pair(StateList::RELAY, relayState),
+        std::make_pair(StateList::RESET, resetState)
+    };
 
     testBed()
     {
@@ -216,11 +224,23 @@ public:
     {
     }
 
+    template <class T>
+    void changeClass()
+    {
+        delete current_state;
+        current_state = new T;
+        return;
+    }
+    
     virtual void update()
     {
         // transitionCheck returns a key to a dictionary we have to make
         // this dictionary uses StateList enums for keys and class constructors for data
-        if(current_state.transitionCheck())
+        StateList update_var = current_state->transitionCheck();
+        if(update_var != current_state->state_var)
+        {
+            
+        }
     }
 
     virtual void end()
