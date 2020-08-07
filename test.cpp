@@ -48,6 +48,14 @@ public:
     {
     };
 
+    template <class T>
+    void changeClass()
+    {
+        delete current_state;
+        current_state = new T;
+        return;
+    }
+
     virtual void update()
     {
         current_state->transitionCheck();
@@ -208,11 +216,12 @@ private:
     /* data */
 public:
     // I think it's fair to put the enum-to-class map here
-    const std::map<StateList, State> StateData = {
-        std::make_pair(StateList::IDLE, idleState),
-        std::make_pair(StateList::TEST, testState),
-        std::make_pair(StateList::RELAY, relayState),
-        std::make_pair(StateList::RESET, resetState)
+    const std::map<StateList, void(*)> StateChanges = 
+    {
+        { StateList::IDLE,  changeClass<idleState>  },
+        { StateList::TEST,  changeClass<testState>  },
+        { StateList::RELAY, changeClass<relayState> },
+        { StateList::RESET, changeClass<resetState> }
     };
 
     testBed()
@@ -223,14 +232,6 @@ public:
     ~testBed()
     {
     }
-
-    template <class T>
-    void changeClass()
-    {
-        delete current_state;
-        current_state = new T;
-        return;
-    }
     
     virtual void update()
     {
@@ -239,7 +240,23 @@ public:
         StateList update_var = current_state->transitionCheck();
         if(update_var != current_state->state_var)
         {
+            // Maybe have a function pointer here so you can retrieve the appropriate
+            //   changeClass<type>() from some map.
+            void (*changeClassType)() = { NULL };
             
+            // Cry here if you're doing embedded. Using 'at()' with a bad key returns an Out of Range exception.
+            try
+            {
+                changeClassType = StateChanges.at(update_var);
+            }
+            catch(const std::out_of_range& e)
+            {
+                std::cerr << "In an unknown state: " << e.what() << std::endl << "Failing on exit." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            changeClassType();
+            return;
         }
     }
 
